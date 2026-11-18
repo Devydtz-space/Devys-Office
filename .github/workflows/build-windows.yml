@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'build/desktop-source.zip.b64'
+      - '.github/workflows/build-windows.yml'
 permissions:
   contents: write
 jobs:
@@ -44,7 +45,7 @@ jobs:
         working-directory: desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npm run build:win
+        run: npm run build:win -- --publish never
       - name: Verify release assets
         shell: pwsh
         run: |
