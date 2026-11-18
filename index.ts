@@ -55,7 +55,15 @@ function token(){const body=b64(JSON.stringify({sub:'owner',iat:Date.now(),exp:D
 function cookie(req){const raw=req.headers.get('cookie')||'';return raw.split(';').map(x=>x.trim()).find(x=>x.startsWith('office_session='))?.split('=').slice(1).join('=')||''}
 function session(req){const t=cookie(req);const [body,sig]=t.split('.');if(!body||!sig)return null;const wanted=mac(body);if(sig.length!==wanted.length||!timingSafeEqual(Buffer.from(sig),Buffer.from(wanted)))return null;try{const p=JSON.parse(Buffer.from(body,'base64url').toString());return p.sub==='owner' && p.exp>Date.now()?t:null}catch{return null}}
 function csrf(t){return mac('csrf:'+t)}
-function sameOrigin(req){const ori=req.headers.get('origin');if(!ori)return true;const url=new URL(req.url);return ori===url.origin}
+function sameOrigin(req){
+ const origin=req.headers.get('origin');
+ if(!origin)return true;
+ // Railway terminates HTTPS at its proxy, so Bun can see an internal http:// origin.
+ // Only permit external origins explicitly configured by the owner; never trust an
+ // arbitrary X-Forwarded-Host header to decide which browser origins are allowed.
+ const allowed=(ENV.OFFICE_ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean);
+ return origin===new URL(req.url).origin||allowed.includes(origin);
+}
 function verifyPassword(value){if(DEMO) return value==='test-password';if(!SALT||!HASH) return false;const actual=scryptSync(value,SALT,64);const wanted=Buffer.from(HASH,'hex');return wanted.length===64&&timingSafeEqual(actual,wanted)}
 const ratelimit=new Map();
 function loginLimit(ip){const old=ratelimit.get(ip)||{count:0,until:0};const t=Date.now();if(old.until<t){ratelimit.set(ip,{count:0,until:t+15*60e3});return false}return old.count>=10}
