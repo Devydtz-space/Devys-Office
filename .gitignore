@@ -6,3 +6,11 @@ node_modules/
 *.db
 *.log
 dist/
+
+/desktop-source.zip
+/desktop/release/
+/desktop/vendor/
+
+/desktop/build-icon-temp.png
+/desktop/PREVIEW.html
+/desktop/.github/

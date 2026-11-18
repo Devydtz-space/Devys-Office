@@ -1,6 +1,6 @@
 # Devys Office
 
-Devys Office is the private-owner task and employee workspace for `office.devydtz.com`. The application is deployed as a **separate** Railway service in the **production** environment of the `devydtz-portfolio` project. It must not replace or alter the existing `devydtz-world` portfolio.
+Devys Office is the private-owner task and employee workspace for `office.devydtz.com`. The application is deployed as a **separate** Railway service in the **production** environment of the `devys-office` project. It must not replace or alter the existing `devydtz-world` portfolio.
 
 ## Status
 

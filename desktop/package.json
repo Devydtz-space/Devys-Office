@@ -1,0 +1,75 @@
+{
+  "name": "devydtz-workforce",
+  "productName": "Devydtz Workforce",
+  "version": "0.9.0",
+  "description": "Windows developer workspace with local ChatGPT sign-in, specialized employee roles, work queues, and optional PC control.",
+  "private": true,
+  "license": "MIT",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "test": "node --test tests/*.test.cjs",
+    "build:win": "electron-builder --win nsis --x64",
+    "build:portable": "electron-builder --win portable --x64",
+    "setup:chatgpt": "node scripts/setup-chatgpt.cjs",
+    "verify:packaging": "node scripts/verify-package.cjs",
+    "build:renderer": "esbuild renderer/markdown-entry.js --bundle --minify --outfile=renderer/markdown.js"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.0.0",
+    "esbuild": "0.28.2"
+  },
+  "build": {
+    "appId": "com.devydtz.workforce",
+    "productName": "Devydtz Workforce",
+    "asar": true,
+    "files": [
+      "electron/**/*",
+      "core/**/*",
+      "renderer/**/*",
+      "package.json",
+      "README.md",
+      "node_modules/**/*",
+      "build/icon.ico",
+      "renderer/devydtz-icon.png"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Devydtz-Workforce-${version}-Setup.${ext}",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Devydtz-space",
+        "repo": "Devys-Office",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "dependencies": {
+    "@siwc/local": "file:vendor/sign-in-with-chatgpt-devkit/packages/local",
+    "dompurify": "3.4.18",
+    "electron-updater": "^6.6.2",
+    "highlight.js": "11.12.0",
+    "marked": "18.2.1"
+  }
+}

@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'build/desktop-source.zip.b64'
+      - 'desktop/**'
       - '.github/workflows/build-windows.yml'
 permissions:
   contents: write
@@ -17,21 +17,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Extract Windows app source
-        shell: pwsh
-        run: |
-          $encoded=(Get-Content 'build/desktop-source.zip.b64' -Raw).Trim()
-          [System.IO.File]::WriteAllBytes('desktop-source.zip',[Convert]::FromBase64String($encoded))
-          New-Item -ItemType Directory -Force -Path desktop | Out-Null
-          Expand-Archive -LiteralPath desktop-source.zip -DestinationPath desktop -Force
-      - name: Install Electron dependencies
-        shell: pwsh
-        working-directory: desktop
-        run: npm install --no-audit --no-fund
-      - name: Install official local ChatGPT DevKit
+      - name: Install official pinned ChatGPT DevKit and dependencies
         shell: pwsh
         working-directory: desktop
         run: npm run setup:chatgpt
+      - name: Build renderer assets
+        working-directory: desktop
+        run: npm run build:renderer
       - name: Run desktop tests
         shell: pwsh
         working-directory: desktop
@@ -49,6 +41,8 @@ jobs:
       - name: Verify release assets
         shell: pwsh
         run: |
+          node desktop/scripts/verify-artifact.cjs
+          if($LASTEXITCODE -ne 0){throw 'Packaged renderer or update integrity verification failed'}
           $setup=Get-ChildItem desktop/release -File -Filter '*.exe'
           $manifest=Get-Item desktop/release/latest.yml -ErrorAction Stop
           if(!$setup){throw 'Missing Windows installer'}
@@ -61,6 +55,7 @@ jobs:
             desktop/release/*.exe
             desktop/release/latest.yml
             desktop/release/*.blockmap
+            desktop/release/package-verification.json
           if-no-files-found: error
           retention-days: 30
       - name: Publish a versioned GitHub Release for automatic updates
