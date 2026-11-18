@@ -1,0 +1,12 @@
+import {randomBytes,scryptSync} from 'node:crypto';
+import {createInterface} from 'node:readline/promises';
+const rl=createInterface({input:process.stdin,output:process.stdout});
+const password=await rl.question('Choose an Office login password (minimum 16 characters): ');
+rl.close();
+if(password.length<16)throw new Error('Password too short');
+const salt=randomBytes(24).toString('hex');
+console.log('OFFICE_PASSWORD_SALT='+salt);
+console.log('OFFICE_PASSWORD_HASH='+scryptSync(password,salt,64).toString('hex'));
+console.log('OFFICE_SESSION_SECRET='+randomBytes(48).toString('hex'));
+console.log('OFFICE_BRIDGE_TOKEN='+randomBytes(48).toString('hex'));
+console.log('Store values only in Railway variables, never GitHub or screenshots.');
