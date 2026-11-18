@@ -1,0 +1,38 @@
+import {test,expect} from 'bun:test';
+process.env.OFFICE_TEST='1';
+const {handle}=await import('../index.ts');
+const origin='https://office.devydtz.com';
+const req=(path,method='GET',payload,extra={})=>handle(new Request(origin+path,{method,headers:{origin,...extra,...(payload?{'content-type':'application/json'}:{})},body:payload?JSON.stringify(payload):undefined}));
+test('chat script compiles and stays inside the CSP nonce',async()=>{
+ const page=await req('/');expect(page.status).toBe(200);
+ const html=await page.text();
+ const m=html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/);
+ expect(m).not.toBeNull();
+ expect(()=>new Function(m[1])).not.toThrow();
+ expect(html).toContain('agent-tabs');
+ expect(html).toContain('formatOfficeText');
+});
+test('chat routing, durable results and safe Office actions',async()=>{
+ const login=await req('/api/login','POST',{password:'test-password'});
+ expect(login.status).toBe(200);
+ const v=await login.json(),cookie=login.headers.get('set-cookie').split(';')[0];
+ const auth={cookie,'x-office-csrf':v.csrf};
+ const chat=await req('/api/chat','POST',{employee:'atlas',message:'Review the latest Office project structure'},auth);
+ expect(chat.status).toBe(202);const queued=await chat.json();
+ let state=await req('/api/state','GET',undefined,auth);state=await state.json();
+ expect(state.threads.atlas.at(-1).status).toBe('queued');
+ const bridge={'authorization':'Bearer office-bridge-test-only-secret-0123456789'};
+ const jobs=await req('/api/bridge/jobs','GET',undefined,bridge);
+ const work=await jobs.json();
+ expect(work.jobs.some(x=>x.id===queued.jobId)).toBe(true);
+ const finish=await req('/api/bridge/jobs/'+queued.jobId+'/complete','POST',{reply:'**Review**\n- Use proper context'},bridge);
+ expect(finish.status).toBe(200);
+ state=await req('/api/state','GET',undefined,auth);state=await state.json();
+ expect(state.threads.atlas.at(-1).text).toContain('Use proper context');
+ expect(state.threads.atlas.at(-1).status).toBe('completed');
+ const action=await req('/api/agent/action','POST',{action:'task.create',fields:{title:'Review issue tracker',employee:'atlas'}},auth);
+ expect(action.status).toBe(200);
+ const task=(await action.json()).task;
+ expect((await req('/api/agent/action','POST',{action:'system.exec',fields:{taskId:task.id,command:'whoami'}},auth)).status).toBe(400);
+ expect((await req('/api/agent/action','POST',{action:'task.assign',fields:{taskId:task.id,employee:'ops'}},{cookie})).status).toBe(403);
+});
