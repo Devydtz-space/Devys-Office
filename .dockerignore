@@ -1,0 +1,10 @@
+node_modules
+.git
+*.log
+*.sqlite
+*.db
+.env
+*.zip
+test.mjs
+generate-credentials.mjs
+README.md
