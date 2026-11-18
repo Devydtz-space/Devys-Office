@@ -1,0 +1,56 @@
+name: Build Windows desktop app
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'build/desktop-source.zip.b64'
+      - '.github/workflows/build-windows.yml'
+permissions:
+  contents: read
+jobs:
+  installer:
+    runs-on: windows-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Extract desktop app source
+        shell: pwsh
+        run: |
+          $encoded=(Get-Content 'build/desktop-source.zip.b64' -Raw).Trim()
+          [System.IO.File]::WriteAllBytes('desktop-source.zip',[Convert]::FromBase64String($encoded))
+          New-Item -ItemType Directory -Force -Path desktop | Out-Null
+          Expand-Archive -LiteralPath desktop-source.zip -DestinationPath desktop -Force
+      - name: Test source
+        shell: pwsh
+        working-directory: desktop
+        run: npm test
+      - name: Install Electron dependencies
+        shell: pwsh
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+      - name: Install official local ChatGPT DevKit
+        shell: pwsh
+        working-directory: desktop
+        run: npm run setup:chatgpt
+      - name: Verify package
+        shell: pwsh
+        working-directory: desktop
+        run: npm run verify:packaging
+      - name: Build unsigned Windows installer
+        shell: pwsh
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run build:win
+      - name: Upload Windows installer
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Devydtz-Workforce-Windows-Installer
+          path: desktop/release/*.exe
+          if-no-files-found: error
+          retention-days: 30
