@@ -1,0 +1,11 @@
+{
+  "name": "devys-office",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.ts",
+    "test": "OFFICE_TEST=1 bun test",
+    "credentials": "node generate-credentials.mjs"
+  }
+}
